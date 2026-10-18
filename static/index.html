@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockVault | Small Business Warehouse Management System</title>
+  <meta name="description" content="Next-gen Warehouse & Inventory Management System for small businesses. Track SKUs, quantities, low stock alerts, locations, and inbound/outbound transactions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=2.2">
+  <!-- PWA & Mobile App Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Warehouse">
+  <!-- JsBarcode for instant barcode rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">📦</div>
+      <div class="brand-text">
+        <h1>StockVault</h1>
+        <span>Warehouse OS</span>
+      </div>
+    </div>
+
+    <ul class="nav-menu">
+      <li>
+        <a class="nav-link active" id="nav-inventory" onclick="switchView('inventory')">
+          <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          Inventory & Stock
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-restock" onclick="switchView('restock')">
+          <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+          Auto Restock Orders
+          <span class="nav-counter" id="nav-restock-count" style="display: none;">0</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-expiry" onclick="switchView('expiry')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Expiry Date Alerts
+          <span class="nav-counter danger" id="nav-expiry-count" style="display: none;">0</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-monthly" onclick="switchView('monthly')">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Monthly Stock Report
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-analytics" onclick="switchView('analytics')">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"></path></svg>
+          Smart AI Analytics
+          <span class="nav-counter" id="nav-stockout-risk-count" style="display: none; background: #ef4444;">0</span>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-movements" onclick="switchView('movements')">
+          <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+          Stock Movements
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-locations" onclick="switchView('locations')">
+          <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          Zones & Bins
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" id="nav-suppliers" onclick="switchView('suppliers')">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Suppliers
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="warehouse-tag">
+        <span>Active Site:</span>
+        <strong style="color: #60a5fa;">Main Hub #1</strong>
+      </div>
+      <div class="warehouse-tag">
+        <span>SQLite Status:</span>
+        <span style="color: #34d399;">● Connected</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+  <!-- Main View Area -->
+  <main class="main-wrapper">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Toggle Navigation Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        </button>
+        <div class="topbar-title">
+          <h2 id="view-title">Inventory & Stock Tracking</h2>
+          <p id="view-subtitle">Real-time SKU quantities, minimum stock alerts, and bin tracking</p>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="btn btn-secondary" onclick="exportInventoryCSV()" title="Download catalog as CSV spreadsheet">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span class="btn-text">Export CSV</span>
+        </button>
+        <button class="btn btn-secondary" onclick="openBulkUploadModal()" title="Upload CSV or JSON dataset of products">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span class="btn-text">Bulk Upload</span>
+        </button>
+        <button class="btn btn-primary" onclick="openAddProductModal()" title="Create and register new item">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span class="btn-text">Add Product</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="content-body">
+      <!-- KPI Stats Grid -->
+      <section class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-header">
+            <span class="stat-label">Total SKUs</span>
+            <div class="stat-icon">📦</div>
+          </div>
+          <div class="stat-value" id="stat-total-skus">0</div>
+          <div class="stat-subtitle">Unique catalog items</div>
+        </div>
+
+        <div class="stat-card green">
+          <div class="stat-header">
+            <span class="stat-label">Total Units on Hand</span>
+            <div class="stat-icon">📊</div>
+          </div>
+          <div class="stat-value" id="stat-total-units">0</div>
+          <div class="stat-subtitle">Aggregated stock items</div>
+        </div>
+
+        <div class="stat-card purple">
+          <div class="stat-header">
+            <span class="stat-label">Total Stock Value</span>
+            <div class="stat-icon">₹</div>
+          </div>
+          <div class="stat-value" id="stat-total-value">₹0.00</div>
+          <div class="stat-subtitle">Current warehouse valuation</div>
+        </div>
+
+        <div class="stat-card orange">
+          <div class="stat-header">
+            <span class="stat-label">Low Stock Alerts</span>
+            <div class="stat-icon">⚠️</div>
+          </div>
+          <div class="stat-value" id="stat-low-stock">0</div>
+          <div class="stat-subtitle">Requires reordering</div>
+        </div>
+
+        <div class="stat-card red" style="cursor: pointer;" onclick="switchView('expiry')">
+          <div class="stat-header">
+            <span class="stat-label">Expiry Alerts</span>
+            <div class="stat-icon">⏳</div>
+          </div>
+          <div class="stat-value" id="stat-expiry-alerts">0</div>
+          <div class="stat-subtitle" id="stat-expiry-sub">Expired / Expiring soon</div>
+        </div>
+
+        <div class="stat-card teal" style="cursor: pointer;" onclick="switchView('restock')">
+          <div class="stat-header">
+            <span class="stat-label">Pending Restocks</span>
+            <div class="stat-icon">🔄</div>
+          </div>
+          <div class="stat-value" id="stat-pending-restocks">0</div>
+          <div class="stat-subtitle">Triggered auto purchase orders</div>
+        </div>
+      </section>
+
+      <!-- View: Inventory Table Section -->
+      <section id="view-inventory-container" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Stock Inventory Catalog</span>
+            <span class="panel-badge" id="product-count-badge">0 items</span>
+          </div>
+
+          <div class="filter-bar">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="text" id="inventory-search" placeholder="Search SKU, name, barcode, location..." oninput="handleSearch()">
+            </div>
+
+            <select class="select-box" id="category-filter" onchange="handleFilter()">
+              <option value="All">All Categories</option>
+            </select>
+
+            <select class="select-box" id="stock-status-filter" onchange="handleFilter()">
+              <option value="all">All Stock Status</option>
+              <option value="low">⚠️ Low Stock Alerts</option>
+              <option value="out">🛑 Out of Stock</option>
+              <option value="expired">☠️ Expired Products</option>
+              <option value="expiring_soon">⏳ Expiring Soon (&le;30d)</option>
+            </select>
+
+            <button class="btn btn-secondary btn-icon" title="Refresh Inventory" onclick="loadInventory()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Location / Bin</th>
+                <th>Qty on Hand</th>
+                <th>Unit Price (₹)</th>
+                <th>Min Threshold</th>
+                <th>Expiry Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-table-body">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-dim);">
+                  Loading warehouse data...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Auto Restock Orders Section -->
+      <section id="view-restock-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Automated Restock & Purchase Orders</span>
+            <span class="panel-badge" id="restock-count-badge">0 active orders</span>
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="btn btn-primary btn-sm" onclick="triggerAutoRestockScan()">
+              ⚡ Run Restock Scan Now
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="loadRestockOrders()">
+              Refresh Orders
+            </button>
+          </div>
+        </div>
+
+        <div style="padding: 16px 24px; background: rgba(59, 130, 246, 0.08); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #93c5fd;">
+          <div>
+            ℹ️ <strong>Auto-Restock Intelligence:</strong> When item inventory falls to or below the minimum reorder threshold, an automated purchase order is generated for the configured supplier and target order quantity.
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>PO Number</th>
+                <th>Product & SKU</th>
+                <th>Supplier</th>
+                <th>Order Qty</th>
+                <th>Est. Cost</th>
+                <th>Triggered Reason</th>
+                <th>Order Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="restock-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Expiry Date Alerts Section -->
+      <section id="view-expiry-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Product Expiry & Shelf-Life Monitor</span>
+            <span class="panel-badge" id="expiry-count-badge">0 tracked items</span>
+          </div>
+          <div class="filter-bar">
+            <select class="select-box" id="expiry-timeframe-filter" onchange="filterExpiryAlerts()">
+              <option value="all">All Expiry Dates</option>
+              <option value="expired">🚨 Expired Only</option>
+              <option value="30">⚠️ Expiring within 30 Days</option>
+              <option value="60">📅 Expiring within 60 Days</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="loadExpiryAlerts()">Refresh Alerts</button>
+          </div>
+        </div>
+
+        <div style="padding: 16px 24px; background: rgba(239, 68, 68, 0.08); border-bottom: 1px solid var(--border-subtle); font-size: 0.85rem; color: #fca5a5;">
+          ⏳ <strong>First-In, First-Out (FIFO) Alerting:</strong> Closely monitor lots approaching their expiry date to prioritize outbound shipments or discard spoiled perishable stock.
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th>Batch / Lot #</th>
+                <th>Category</th>
+                <th>Storage Temp</th>
+                <th>Location / Bin</th>
+                <th>Qty on Hand</th>
+                <th>Expiry Date</th>
+                <th>Days Remaining</th>
+                <th>Urgency Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="expiry-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Monthly Stock Balance & Consumption Report -->
+      <section id="view-monthly-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Monthly Stock Balance, Consumption & Finished Goods</span>
+            <span class="panel-badge" id="monthly-badge-label">Selected Month</span>
+          </div>
+          <div class="filter-bar">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label for="monthly-picker" style="font-size: 0.82rem; color: var(--text-muted);">Select Month:</label>
+              <input type="month" id="monthly-picker" class="select-box" style="padding: 7px 12px;" onchange="loadMonthlyReport()">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="exportMonthlyCSV()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Export Monthly Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Monthly Balance Overview Cards -->
+        <div style="padding: 24px; border-bottom: 1px solid var(--border-subtle);">
+          <div class="stats-grid">
+            <div class="stat-card blue">
+              <div class="stat-header">
+                <span class="stat-label">Starting Month Stock</span>
+                <div class="stat-icon">📅</div>
+              </div>
+              <div class="stat-value" id="month-stat-starting">0</div>
+              <div class="stat-subtitle">Estimated balance at month start</div>
+            </div>
+
+            <div class="stat-card green">
+              <div class="stat-header">
+                <span class="stat-label">Inbound Stock Received</span>
+                <div class="stat-icon">📥</div>
+              </div>
+              <div class="stat-value" id="month-stat-received">0</div>
+              <div class="stat-subtitle">New arrivals this month</div>
+            </div>
+
+            <div class="stat-card orange">
+              <div class="stat-header">
+                <span class="stat-label">Total Product Finished / Dispatched</span>
+                <div class="stat-icon">📤</div>
+              </div>
+              <div class="stat-value" id="month-stat-finished" style="color: #fbbf24;">0</div>
+              <div class="stat-subtitle" id="month-stat-waste-sub">Sales + Discards</div>
+            </div>
+
+            <div class="stat-card purple">
+              <div class="stat-header">
+                <span class="stat-label">Current Stock Remaining</span>
+                <div class="stat-icon">📦</div>
+              </div>
+              <div class="stat-value" id="month-stat-remaining" style="color: #a78bfa;">0</div>
+              <div class="stat-subtitle" id="month-stat-valuation">Valuation: ₹0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Location</th>
+                <th>Received (+)</th>
+                <th>Finished / Dispatched (-)</th>
+                <th>Spoiled / Discarded</th>
+                <th>Current Remaining</th>
+                <th>Unit Price (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Smart AI Analytics Section -->
+      <section id="view-analytics-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>🧠 Smart Inventory Intelligence & ABC Analysis</span>
+            <span class="panel-badge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.4);">
+              AI Demand & Stockout Forecasting
+            </span>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-secondary btn-sm" onclick="exportAnalyticsCSV()">📥 Export Analytics</button>
+            <button class="btn btn-primary btn-sm" onclick="loadSmartAnalytics()">🔄 Refresh Intelligence</button>
+          </div>
+        </div>
+
+        <!-- Smart Intelligence Cards -->
+        <div class="monthly-summary-cards" style="margin-bottom: 24px;">
+          <div class="m-card blue">
+            <span class="m-label">Class A Items (High Value 70%)</span>
+            <div class="m-val" id="analytics-class-a-count">0 items</div>
+            <span class="m-sub" id="analytics-class-a-val">₹0.00 valuation</span>
+          </div>
+          <div class="m-card green">
+            <span class="m-label">Class B Items (Moderate 20%)</span>
+            <div class="m-val" id="analytics-class-b-count">0 items</div>
+            <span class="m-sub" id="analytics-class-b-val">₹0.00 valuation</span>
+          </div>
+          <div class="m-card red">
+            <span class="m-label">Critical Stockout Risk</span>
+            <div class="m-val" id="analytics-stockout-risk-count" style="color: #f87171;">0 SKUs</div>
+            <span class="m-sub">Less than 7-14 days runway</span>
+          </div>
+          <div class="m-card purple">
+            <span class="m-label">Dead Stock (Zero 30d Movement)</span>
+            <div class="m-val" id="analytics-dead-stock-count" style="color: #c084fc;">0 SKUs</div>
+            <span class="m-sub" id="analytics-dead-stock-val">Tied up capital: ₹0.00</span>
+          </div>
+        </div>
+
+        <!-- Strategy Advisor Banner -->
+        <div id="analytics-strategy-banner" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 14px;">
+          <div style="font-size: 1.6rem; line-height: 1;">💡</div>
+          <div>
+            <strong style="color: #c7d2fe; font-size: 0.95rem;">Smart Restock Recommendations & Actionable Insights</strong>
+            <p id="analytics-strategy-text" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; line-height: 1.4;">
+              Analyzing product burn velocities, ABC priorities, and consumption runaways...
+            </p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>SKU & Name</th>
+                <th>Category</th>
+                <th>ABC Priority</th>
+                <th>Current Stock</th>
+                <th>30-Day Burn Velocity</th>
+                <th>Runway / Days Left</th>
+                <th>Stockout Risk</th>
+                <th>Total Valuation</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-table-body">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 32px; color: var(--text-dim);">
+                  Loading Smart AI Analytics...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Movement Log Section -->
+      <section id="view-movements-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Audit Trail & Stock Transactions</span>
+            <span class="panel-badge">Inbound / Outbound</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="loadMovements()">Refresh Activity</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Date & Time</th>
+                <th>SKU</th>
+                <th>Product</th>
+                <th>Operation Type</th>
+                <th>Change</th>
+                <th>Before &rarr; After</th>
+                <th>Notes / Reason</th>
+              </tr>
+            </thead>
+            <tbody id="movements-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Locations Section -->
+      <section id="view-locations-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Warehouse Bins, Shelves & Zones</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openAddLocationModal()">+ Add New Location</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Location Code</th>
+                <th>Zone / Sector</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody id="locations-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- View: Suppliers Section -->
+      <section id="view-suppliers-container" class="panel" style="display: none;">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Suppliers & Vendors Directory</span>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openAddSupplierModal()">+ Add Supplier</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Supplier Name</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Warehouse Address</th>
+              </tr>
+            </thead>
+            <tbody id="suppliers-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: Add / Edit Product -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="product-modal-title">Add New Product</h3>
+        <button class="modal-close" onclick="closeProductModal()">&times;</button>
+      </div>
+      <form id="product-form" onsubmit="handleProductSubmit(event)">
+        <input type="hidden" id="product-id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="input-sku">SKU Code *</label>
+              <input type="text" id="input-sku" required placeholder="e.g. SKU-1090">
+            </div>
+            <div class="form-group">
+              <label for="input-barcode">Barcode</label>
+              <input type="text" id="input-barcode" placeholder="e.g. BAR-1090">
+            </div>
+
+            <div class="form-group full">
+              <label for="input-name">Product Name *</label>
+              <input type="text" id="input-name" required placeholder="Item description / name">
+            </div>
+
+            <div class="form-group">
+              <label for="input-category">Category *</label>
+              <select id="input-category" required>
+                <!-- Populated via API -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="input-location">Warehouse Bin / Location *</label>
+              <select id="input-location" required>
+                <!-- Populated via API -->
+              </select>
+            </div>
+
+            <div class="form-group" id="group-initial-qty">
+              <label for="input-quantity">Initial Quantity</label>
+              <input type="number" id="input-quantity" value="0" min="0">
+            </div>
+
+            <div class="form-group">
+              <label for="input-min-stock">Min Reorder Level *</label>
+              <input type="number" id="input-min-stock" value="10" min="0" required>
+            </div>
+
+            <div class="form-group">
+              <label for="input-price">Unit Price (₹) *</label>
+              <input type="number" step="0.01" id="input-price" value="0.00" min="0" required>
+            </div>
+
+            <div class="form-group">
+              <label for="input-unit">Unit Type</label>
+              <input type="text" id="input-unit" value="pcs" placeholder="pcs, kg, box, roll">
+            </div>
+
+            <!-- Food & Lot Details Section -->
+            <div class="form-group full" style="background: rgba(16, 185, 129, 0.05); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid rgba(16, 185, 129, 0.2); margin-top: 4px;">
+              <div style="font-size: 0.88rem; font-weight: 700; color: #34d399; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                <span>🥗 Food Lot & Auto Shelf-Life Intelligence</span>
+                <span style="font-size: 0.72rem; color: var(--text-dim); font-weight: normal;">Auto-calculates expiry from Mfg date</span>
+              </div>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="input-batch">Batch / Lot Number</label>
+                  <input type="text" id="input-batch" placeholder="e.g. LOT-2026-OCT-A">
+                </div>
+                <div class="form-group">
+                  <label for="input-storage-temp">Storage Condition</label>
+                  <select id="input-storage-temp">
+                    <option value="Ambient">Ambient (Room Temp 18-24°C)</option>
+                    <option value="Chilled (0-4°C)">❄️ Chilled Cold Room (0-4°C)</option>
+                    <option value="Frozen (-18°C)">🧊 Deep Freezer (-18°C)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="input-mfg-date">Production / Mfg Date</label>
+                  <input type="date" id="input-mfg-date" onchange="calculateAutoExpiry()">
+                </div>
+                <div class="form-group">
+                  <label for="input-shelf-life">Shelf Life (Days) / Preset</label>
+                  <div style="display: flex; gap: 6px;">
+                    <input type="number" id="input-shelf-life" min="1" placeholder="e.g. 14, 90" style="flex: 1;" oninput="calculateAutoExpiry()">
+                    <select id="preset-shelf-life" onchange="applyFoodPreset()" style="width: 110px; font-size: 0.78rem;">
+                      <option value="">Presets...</option>
+                      <option value="5">Bakery (5d)</option>
+                      <option value="14">Dairy (14d)</option>
+                      <option value="30">Chilled (30d)</option>
+                      <option value="90">Snacks (90d)</option>
+                      <option value="180">Frozen (180d)</option>
+                      <option value="365">Canned (1yr)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group full">
+                  <label for="input-expiry">Calculated Expiry Date *</label>
+                  <input type="date" id="input-expiry">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label for="input-supplier">Supplier / Vendor</label>
+              <select id="input-supplier">
+                <option value="">None</option>
+              </select>
+            </div>
+
+            <div class="form-group full" style="background: rgba(255, 255, 255, 0.04); padding: 14px 16px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <strong style="font-size: 0.9rem; color: #fff;">🔄 Automatic Restocking</strong>
+                  <div style="font-size: 0.78rem; color: var(--text-muted);">Auto-trigger purchase order when stock drops &le; min threshold</div>
+                </div>
+                <label class="switch-toggle">
+                  <input type="checkbox" id="input-auto-restock" checked>
+                  <span class="slider"></span>
+                </label>
+              </div>
+
+              <div id="restock-qty-container" style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+                <label for="input-restock-qty" style="font-size: 0.85rem; color: var(--text-muted); min-width: 140px;">Default Restock Qty:</label>
+                <input type="number" id="input-restock-qty" value="20" min="1" style="flex: 1;">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-product">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Quick Stock Inbound / Outbound / Adjust -->
+  <div class="modal-overlay" id="stock-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="stock-modal-title">Adjust Stock Level</h3>
+        <button class="modal-close" onclick="closeStockModal()">&times;</button>
+      </div>
+      <form id="stock-form" onsubmit="handleStockSubmit(event)">
+        <input type="hidden" id="stock-prod-id">
+        <div class="modal-body">
+          <div style="background: rgba(255, 255, 255, 0.04); padding: 14px; border-radius: var(--radius-md); margin-bottom: 8px;">
+            <div style="font-weight: 600; font-size: 1rem;" id="stock-prod-name">Item Name</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;" id="stock-prod-sku">SKU: SKU-0000</div>
+            <div style="margin-top: 8px; font-size: 0.9rem;">
+              Current Available Quantity: <strong style="color: #60a5fa;" id="stock-prod-current">0</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="stock-action-type">Transaction Type</label>
+            <select id="stock-action-type" onchange="onStockActionChange()">
+              <option value="INBOUND">📥 Inbound (Add received stock)</option>
+              <option value="OUTBOUND">📤 Outbound (Dispatch / Ship items)</option>
+              <option value="ADJUSTMENT">⚙️ Stock Count Adjustment (Audit overwrite)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="group-stock-change">
+            <label for="stock-change-qty" id="label-stock-qty">Quantity to Add</label>
+            <input type="number" id="stock-change-qty" min="1" value="1" required>
+          </div>
+
+          <div class="form-group">
+            <label for="stock-note">Reason / Reference Note</label>
+            <input type="text" id="stock-note" placeholder="PO #, invoice #, customer order, physical recount">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeStockModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-confirm-stock">Confirm Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Barcode Preview & Print -->
+  <div class="modal-overlay" id="barcode-modal">
+    <div class="modal-card" style="max-width: 440px; text-align: center;">
+      <div class="modal-header">
+        <h3>Product Barcode Label</h3>
+        <button class="modal-close" onclick="closeBarcodeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="barcode-preview" id="printable-barcode">
+          <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 6px;" id="barcode-item-title">Product</div>
+          <svg id="barcode-svg"></svg>
+          <div class="barcode-label" id="barcode-code-text">SKU-0000</div>
+          <div style="font-size: 0.8rem; color: #666; margin-top: 4px;" id="barcode-loc-text">Loc: A1-S01</div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: center;">
+        <button type="button" class="btn btn-secondary" onclick="closeBarcodeModal()">Close</button>
+        <button type="button" class="btn btn-primary" onclick="printBarcode()">Print Barcode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Location -->
+  <div class="modal-overlay" id="location-modal">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3>Add Warehouse Bin / Location</h3>
+        <button class="modal-close" onclick="closeLocationModal()">&times;</button>
+      </div>
+      <form id="location-form" onsubmit="handleLocationSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="loc-code">Location Code *</label>
+            <input type="text" id="loc-code" required placeholder="e.g. A2-S04 or B1-P01">
+          </div>
+          <div class="form-group">
+            <label for="loc-zone">Zone / Area *</label>
+            <input type="text" id="loc-zone" required placeholder="e.g. Zone A - Fast Moving">
+          </div>
+          <div class="form-group">
+            <label for="loc-desc">Description</label>
+            <input type="text" id="loc-desc" placeholder="Aisle 2, Shelf 4">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeLocationModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Location</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Supplier -->
+  <div class="modal-overlay" id="supplier-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add Supplier</h3>
+        <button class="modal-close" onclick="closeSupplierModal()">&times;</button>
+      </div>
+      <form id="supplier-form" onsubmit="handleSupplierSubmit(event)">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group full">
+              <label for="sup-name">Supplier / Company Name *</label>
+              <input type="text" id="sup-name" required placeholder="e.g. Precision Parts Co.">
+            </div>
+            <div class="form-group">
+              <label for="sup-contact">Contact Person</label>
+              <input type="text" id="sup-contact" placeholder="e.g. Jane Doe">
+            </div>
+            <div class="form-group">
+              <label for="sup-phone">Phone</label>
+              <input type="text" id="sup-phone" placeholder="+1-555-0199">
+            </div>
+            <div class="form-group full">
+              <label for="sup-email">Email</label>
+              <input type="email" id="sup-email" placeholder="sales@precisionparts.com">
+            </div>
+            <div class="form-group full">
+              <label for="sup-address">Address</label>
+              <input type="text" id="sup-address" placeholder="123 Industrial Way, Suite 4">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Supplier</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: Bulk Upload Dataset -->
+  <div class="modal-overlay" id="bulk-upload-modal">
+    <div class="modal-card" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>Bulk Upload Product Dataset</h3>
+        <button class="modal-close" onclick="closeBulkUploadModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 16px;">
+          Upload a <strong>CSV</strong> or <strong>JSON</strong> file to add or update items in bulk. Existing items with matching SKUs will be automatically updated.
+        </p>
+
+        <div style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 24px; text-align: center; background: rgba(255,255,255,0.02); margin-bottom: 18px; cursor: pointer;" onclick="document.getElementById('bulk-file-input').click()">
+          <input type="file" id="bulk-file-input" accept=".csv,.json" style="display: none;" onchange="handleBulkFileSelect(event)">
+          <div style="font-size: 2.2rem; margin-bottom: 8px;">📂</div>
+          <div style="font-weight: 600; color: #f1f5f9; font-size: 0.95rem;" id="bulk-file-title">Click to choose a CSV or JSON file</div>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 4px;" id="bulk-file-sub">Supported formats: .csv, .json (Max 5MB)</div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSampleCSV()" style="font-size: 0.8rem; padding: 6px 12px;">
+            📄 Download Sample CSV Template
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSampleJSON()" style="font-size: 0.8rem; padding: 6px 12px;">
+            📋 Download Sample JSON Template
+          </button>
+        </div>
+
+        <!-- Preview table container -->
+        <div id="bulk-preview-wrapper" style="display: none; margin-top: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: #38bdf8;" id="bulk-preview-count">0 items detected</span>
+            <span style="font-size: 0.75rem; color: #94a3b8;">First 5 rows preview:</span>
+          </div>
+          <div style="max-height: 180px; overflow-y: auto; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(0,0,0,0.25);">
+            <table class="table" style="font-size: 0.78rem; margin: 0; width: 100%;">
+              <thead>
+                <tr>
+                  <th style="padding: 6px 10px;">SKU</th>
+                  <th style="padding: 6px 10px;">Name</th>
+                  <th style="padding: 6px 10px;">Category</th>
+                  <th style="padding: 6px 10px;">Qty</th>
+                  <th style="padding: 6px 10px;">Unit Price (₹)</th>
+                  <th style="padding: 6px 10px;">Location</th>
+                </tr>
+              </thead>
+              <tbody id="bulk-preview-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeBulkUploadModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-submit-bulk" onclick="submitBulkUpload()" disabled>
+          Upload & Process
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js?v=2.2"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration note:', err));
+      });
+    }
+  </script>
+</body>
+</html>
